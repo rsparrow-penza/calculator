@@ -31,12 +31,14 @@ export default function History({ items, onClear }) {
   )
 }
 
-// Показываем привычные значки вместо символов программирования: * → ×, pi → π
+// Показываем привычные значки вместо символов программирования: * → ×, sqrt( → √(
 function pretty(expression) {
   return expression
     .replace(/\*/g, '×')
     .replace(/\//g, '÷')
     .replace(/\bpi\b/g, 'π')
+    .replace(/sqrt\(/g, '√(')
+    .replace(/cbrt\(/g, '∛(')
 }
 
 // "2026-11-01T16:38:42" → "16:38"

@@ -28,6 +28,9 @@ const KEYS = [
 
   { label: 'π', value: 'pi' },    { label: 'sin', value: 'sin(' },
   { label: 'cos', value: 'cos(' },{ label: 'tan', value: 'tan(' },
+
+  { label: '√', value: 'sqrt(' }, { label: '∛', value: 'cbrt(' },
+  { label: 'ln', value: 'ln(' },  { label: 'log', value: 'log(' },
 ]
 
 export default function Calculator({
@@ -93,10 +96,12 @@ export default function Calculator({
   )
 }
 
-// Внутренний вид (* / pi) показываем человеку привычно (× ÷ π)
+// Внутренний вид (* / pi sqrt( …) показываем человеку привычно (× ÷ π  …)
 function pretty(expression) {
   return expression
     .replace(/\*/g, '×')
     .replace(/\//g, '÷')
     .replace(/\bpi\b/g, 'π')
+    .replace(/sqrt\(/g, '√(')
+    .replace(/cbrt\(/g, '∛(')
 }

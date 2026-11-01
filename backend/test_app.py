@@ -7,6 +7,7 @@
 # Для тестов поднимаем Flask-приложение с временной базой в памяти,
 # поэтому боевой calculator.db не пострадает.
 
+import math
 import os
 import tempfile
 import unittest
@@ -52,6 +53,36 @@ class TestSafeEval(unittest.TestCase):
         self.assertAlmostEqual(calc.safe_eval("pi"), 3.14159265358979)
         self.assertAlmostEqual(calc.safe_eval("pi*2"), 6.28318530717959)
 
+    # --- Корни ---
+    def test_roots(self):
+        self.assertEqual(calc.safe_eval("sqrt(9)"), 3)
+        self.assertEqual(calc.safe_eval("sqrt(2)"), math.sqrt(2))
+        self.assertEqual(calc.safe_eval("sqrt(0)"), 0)
+        self.assertEqual(calc.safe_eval("cbrt(27)"), 3)
+        self.assertAlmostEqual(calc.safe_eval("cbrt(-8)"), -2)        # кубический из отрицательного
+        self.assertEqual(calc.safe_eval("sqrt(16)+cbrt(8)"), 6)       # две функции в выражении
+        self.assertAlmostEqual(calc.safe_eval("sqrt(sqrt(16))"), 2)   # вложенные корни
+
+    # --- Логарифмы ---
+    def test_logarithms(self):
+        self.assertEqual(calc.safe_eval("ln(1)"), 0)
+        self.assertEqual(calc.safe_eval("log(1000)"), 3)
+        self.assertEqual(calc.safe_eval("log(1)"), 0)
+        self.assertAlmostEqual(calc.safe_eval("ln(pi)"), math.log(math.pi))
+        # натуральный логарифм от e — это 1 (e ≈ 2.718281828459045 подставляем числом)
+        self.assertAlmostEqual(calc.safe_eval("ln(2.718281828459045)"), 1)
+        # связь логарифма и степени: log(10^4) = 4
+        self.assertAlmostEqual(calc.safe_eval("log(10*10*10*10)"), 4)
+
+    # --- Доменные ошибки: sqrt от отрицательного, логарифм от неположительного ---
+    def test_domain_errors(self):
+        with self.assertRaises(ValueError):
+            calc.safe_eval("sqrt(-4)")
+        with self.assertRaises(ValueError):
+            calc.safe_eval("ln(0)")
+        with self.assertRaises(ValueError):
+            calc.safe_eval("log(-10)")
+
     # --- Отрицательные случаи: всё запрещённое должно ловиться ---
     def test_errors(self):
         with self.assertRaises(ValueError):
@@ -63,7 +94,7 @@ class TestSafeEval(unittest.TestCase):
         with self.assertRaises(ValueError):
             calc.safe_eval("print(1)")                           # неизвестная функция
         with self.assertRaises(ValueError):
-            calc.safe_eval("log(10)")                            # не тригонометрия
+            calc.safe_eval("abs(-5)")                              # не добавляли — быть запрещено
         with self.assertRaises(SyntaxError):
             calc.safe_eval("(1+2")                               # незакрытая скобка
         with self.assertRaises(ZeroDivisionError):
@@ -102,6 +133,15 @@ class TestCalculateEndpoint(unittest.TestCase):
         res = self.post("sin(pi/2)")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.get_json()["result"], "1")          # .12g прибирает float-шум
+
+    def test_roots_and_logs_end_to_end(self):
+        self.assertEqual(self.post("sqrt(144)").get_json()["result"], "12")
+        self.assertEqual(self.post("cbrt(-27)").get_json()["result"], "-3")
+        self.assertEqual(self.post("log(100)").get_json()["result"], "2")
+        # доменная ошибка возвращается по-человечески
+        res = self.post("sqrt(-4)")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Недопустимое значение", res.get_json()["error"])
 
     def test_division_by_zero_returns_400(self):
         res = self.post("5/0")

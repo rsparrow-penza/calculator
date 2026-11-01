@@ -71,11 +71,24 @@ init_db()
 import ast
 import math
 
+def _cbrt(x: float) -> float:
+    """
+    Кубический корень. Готовой math.cbrt нет в Python 3.9 (локальный компьютер),
+    а на сервере в Docker — 3.12. Пишем сами, чтобы работало везде:
+    корень нечётной степени сохраняем со знаком (∛(-8) = -2).
+    """
+    return math.copysign(abs(x) ** (1 / 3), x)
+
+
 # Что разрешено использовать в выражении
 ALLOWED_FUNCTIONS = {
     "sin": math.sin,
     "cos": math.cos,
     "tan": math.tan,
+    "sqrt": math.sqrt,   # квадратный корень √x
+    "cbrt": _cbrt,       # кубический корень ∛x
+    "ln": math.log,      # натуральный логарифм (основание e)
+    "log": math.log10,   # десятичный логарифм (основание 10)
 }
 ALLOWED_CONSTANTS = {
     "pi": math.pi,
@@ -164,7 +177,12 @@ def calculate():
         result = safe_eval(expression)
     except ZeroDivisionError:
         return jsonify({"error": "Деление на ноль"}), 400
-    except (ValueError, SyntaxError):
+    except ValueError as e:
+        # math доменные ошибки: sqrt(-4), ln(0), log(-10)
+        if "domain error" in str(e).lower():
+            return jsonify({"error": "Недопустимое значение: √ только от ≥0, логарифм только от >0"}), 400
+        return jsonify({"error": "Некорректное выражение"}), 400
+    except SyntaxError:
         return jsonify({"error": "Некорректное выражение"}), 400
 
     # Сохраняем каждое вычисление в базу данных
