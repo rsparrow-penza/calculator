@@ -9,6 +9,45 @@ import Calculator from './Calculator.jsx'
 import History from './History.jsx'
 import './App.css'
 
+// --- Вспомогательные функции «постфиксного» ввода ---
+
+// Кнопка-функция — это значение вида "sqrt(", "sin(", "ln(" и т. п.
+function isFunctionKey(value) {
+  return /^[a-z]+\($/.test(value)
+}
+
+// Пытаемся применить функцию к уже набранному «последнему операнду».
+// Возвращаем новое выражение или null, если накрывать нечего
+// (пустая строка, выражение кончается оператором и т. д.).
+function wrapPreviousOperand(expr, fn) {
+  if (!expr) return null
+  let start = expr.length
+
+  if (expr.endsWith(')')) {
+    // Ищем скобку, парную к последней…
+    let depth = 0
+    for (let i = expr.length - 1; i >= 0; i--) {
+      if (expr[i] === ')') depth++
+      else if (expr[i] === '(' && --depth === 0) { start = i; break }
+    }
+    // …и приклеиваем имя функции перед ней: sin(30) → sqrt(sin(30))
+    while (start > 0 && /[a-z]/.test(expr[start - 1])) start--
+  } else if (/[0-9.]/.test(expr[expr.length - 1])) {
+    // Число в конце: 2.5 → sqrt(2.5). Идём назад, пока идут цифры и точка
+    let i = expr.length - 1
+    while (i >= 0 && /[0-9.]/.test(expr[i])) i--
+    start = i + 1
+  } else if (expr.endsWith('pi')) {
+    start = expr.length - 2   // константа π в конце: pi → sqrt(pi)
+  } else {
+    return null               // конец на операторе (+, *) — накрывать нечего
+  }
+
+  const operand = expr.slice(start)
+  if (!operand) return null
+  return expr.slice(0, start) + fn + operand + ')'
+}
+
 export default function App() {
   // Хуки useState создают «ячейки» состояния
   const [expression, setExpression] = useState('')     // то, что набрал пользователь: "7+2*3"
@@ -79,7 +118,17 @@ export default function App() {
   // Добавить цифру или оператор (кнопки 0-9, +, -, …)
   function handleInput(value) {
     setResult(null) // новый ввод — старый результат больше не актуален
-    setExpression((prev) => prev + value)
+    setExpression((prev) => {
+      // «Постфиксный режим» как в мобильных калькуляторах:
+      // если набрали число (или скобку/π/функцию), а потом жмём кнопку
+      // функции (sqrt(, sin(, ...), то функция «накрывает» уже набранное:
+      //   4 → √ → sqrt(4)          вместо бесполезного 4sqrt(
+      if (isFunctionKey(value)) {
+        const wrapped = wrapPreviousOperand(prev, value)
+        if (wrapped !== null) return wrapped
+      }
+      return prev + value
+    })
   }
 
   // Полная очистка истории (кнопка «Очистить историю»)
