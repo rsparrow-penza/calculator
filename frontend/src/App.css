@@ -86,12 +86,15 @@
   background: #3a3a4d;
 }
 
-/* Верхний ряд служебных кнопок */
-.controls {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
+/* Кнопки функций (π, sin, cos, tan) — мельче шрифт, другой оттенок */
+.key-func {
+  font-size: 1.05rem;
+  background: #26333f;
+  color: #8fd3c7;
+}
+
+.key-func:hover {
+  background: #2f4050;
 }
 
 .key-clear {

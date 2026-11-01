@@ -58,21 +58,96 @@ init_db()
 # ---------------------------------------------------------------------------
 # Безопасный вычислитель выражений
 # ---------------------------------------------------------------------------
+#
+# Раньше здесь стояла проверка «разрешённые символы + eval()». Теперь поддерживаются
+# функции (sin, cos, tan), и пропускать их через eval стало опаснее: подмена
+# символа — и уже можно что-нибудь натворить.
+#
+# Правильный подход: разобрать строку в ДЕРЕВО операций (AST — abstract syntax
+# tree, «синтаксическое дерево») и разрешить в нём только заранее известные
+# узлы: числа, + - * / , скобки, π и три функции. Всё остальное — ValueError.
+# Никакого eval() не становится вовсе.
+
+import ast
+import math
+
+# Что разрешено использовать в выражении
+ALLOWED_FUNCTIONS = {
+    "sin": math.sin,
+    "cos": math.cos,
+    "tan": math.tan,
+}
+ALLOWED_CONSTANTS = {
+    "pi": math.pi,
+}
+
+
+def _eval_node(node):
+    """
+    Рекурсивно вычисляет один узел дерева.
+    Каждый elif — единственный разрешённый «кирпичик» калькулятора.
+    """
+    if isinstance(node, ast.Expression):          # обёртка всего выражения
+        return _eval_node(node.body)
+
+    if isinstance(node, ast.Constant):            # число: 7, 3.14
+        if isinstance(node.value, (int, float)):
+            return node.value
+        raise ValueError("Разрешены только числа")
+
+    if isinstance(node, ast.Name):                # имя: pi
+        if node.id in ALLOWED_CONSTANTS:
+            return ALLOWED_CONSTANTS[node.id]
+        raise ValueError("Неизвестная константа")
+
+    if isinstance(node, ast.BinOp):               # бинарная операция: a + b
+        left, right = _eval_node(node.left), _eval_node(node.right)
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if isinstance(node.op, ast.Div):
+            return left / right                   # деление на ноль поймает Flask
+        raise ValueError("Неизвестная операция")
+
+    if isinstance(node, ast.UnaryOp):             # унарный минус: -5
+        value = _eval_node(node.operand)
+        if isinstance(node.op, ast.USub):
+            return -value
+        if isinstance(node.op, ast.UAdd):
+            return value
+        raise ValueError("Неизвестная операция")
+
+    if isinstance(node, ast.Call):                # вызов функции: sin(...)
+        func_name = getattr(node.func, "id", None)
+        if func_name in ALLOWED_FUNCTIONS and len(node.args) == 1:
+            return ALLOWED_FUNCTIONS[func_name](_eval_node(node.args[0]))
+        raise ValueError("Неизвестная функция")
+
+    raise ValueError("Неразрешённая конструкция")
+
 
 def safe_eval(expression: str):
     """
-    Считает арифметическое выражение БЕЗ использования eval().
-    eval() выполняет любой код — это дыра в безопасности, когда код приходит
-    из интернета. Поэтому сначала проверяем, что в строке только цифры,
-    скобки и знаки операций, и только потом считаем.
+    Принимает строку вида "(1+2)*sin(pi/2)" и возвращает число.
+    SyntaxError — если строка вообще не похожа на выражение,
+    ValueError — если в дереве встретилось что-то запрещённое.
     """
-    # Разрешённые символы: цифры, пробелы, + - * / и скобки, десятичная точка
-    allowed = set("0123456789+-*/(). ")
-    if not expression or not set(expression) <= allowed:
-        raise ValueError("Разрешены только числа и операции + - * / и скобки")
+    if not expression:
+        raise ValueError("Пустое выражение")
+    tree = ast.parse(expression, mode="eval")     # строка → дерево операций
+    return _eval_node(tree)
 
-    result = eval(expression, {"__builtins__": {}}, {})  # безопасно: символы проверены
-    return result
+
+def format_result(value) -> str:
+    """
+    Красиво печатает число: 3.0 → "3", а 1.2246467991473532e-16 → "0".
+    .12g — «до 12 значимых цифр», этого хватает, чтобы убрать шум
+    двоичных дробей после, например, sin(pi).
+    """
+    return f"{value:.12g}"
 
 
 # ---------------------------------------------------------------------------
@@ -93,13 +168,14 @@ def calculate():
         return jsonify({"error": "Некорректное выражение"}), 400
 
     # Сохраняем каждое вычисление в базу данных
+    formatted = format_result(result)
     with get_db() as db:
         db.execute(
             "INSERT INTO history (expression, result, created_at) VALUES (?, ?, ?)",
-            (expression, str(result), datetime.now().isoformat(timespec="seconds")),
+            (expression, formatted, datetime.now().isoformat(timespec="seconds")),
         )
 
-    return jsonify({"expression": expression, "result": str(result)})
+    return jsonify({"expression": expression, "result": formatted})
 
 
 @app.route("/api/history", methods=["GET"])

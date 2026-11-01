@@ -31,9 +31,12 @@ export default function History({ items, onClear }) {
   )
 }
 
-// Показываем привычные значки вместо символов программирования: * → ×
+// Показываем привычные значки вместо символов программирования: * → ×, pi → π
 function pretty(expression) {
-  return expression.replace(/\*/g, '×').replace(/\//g, '÷')
+  return expression
+    .replace(/\*/g, '×')
+    .replace(/\//g, '÷')
+    .replace(/\bpi\b/g, 'π')
 }
 
 // "2026-11-01T16:38:42" → "16:38"
