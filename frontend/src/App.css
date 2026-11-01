@@ -1,0 +1,206 @@
+/* App.css — оформление калькулятора и истории. */
+
+.app {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.app h1 {
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Два блока рядом: калькулятор и история. На узких экранах — друг под другом */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Калькулятор ---------- */
+
+.calculator {
+  background: #1c1c28;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.display {
+  background: #12121a;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.display-expression {
+  font-size: 1.2rem;
+  color: #8f8fa8;
+  word-break: break-all;
+}
+
+.display-result {
+  font-size: 2.1rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.display-error {
+  font-size: 1.1rem;
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.key {
+  font-size: 1.25rem;
+  padding: 14px 0;
+  border: none;
+  border-radius: 10px;
+  background: #2b2b3a;
+  color: #f2f2f7;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.key:hover {
+  background: #3a3a4d;
+}
+
+/* Верхний ряд служебных кнопок */
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.key-clear {
+  background: #55343c;
+}
+
+.key-clear:hover {
+  background: #6b414b;
+}
+
+.key-back {
+  background: #2f3b52;
+}
+
+.key-back:hover {
+  background: #3b4a68;
+}
+
+.key-equals {
+  background: #4c6ef5;
+  grid-row: span 1;
+}
+
+.key-equals:hover {
+  background: #5f7ef7;
+}
+
+.key-equals:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- История ---------- */
+
+.history {
+  background: #22222e;
+  border-radius: 16px;
+  padding: 16px;
+  color: #f2f2f7;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.history-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #b7b7c9;
+}
+
+.history-clear {
+  background: none;
+  border: 1px solid #55556a;
+  color: #b7b7c9;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.history-clear:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.history-empty {
+  color: #77778b;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  background: #1a1a24;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+}
+
+.history-expr {
+  color: #9a9ab0;
+  word-break: break-all;
+}
+
+.history-result {
+  color: #7ee2a0;
+  font-weight: 600;
+  justify-self: end;
+}
+
+.history-time {
+  grid-column: 2;
+  color: #55556a;
+  font-size: 0.75rem;
+  justify-self: end;
+}

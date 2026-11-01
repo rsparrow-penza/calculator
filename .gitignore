@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# База данных SQLite (создаётся при запуске)
+*.db
+
+# Логи
+*.log
+
+# Node.js
+node_modules/
+dist/
+
+# Система
+.DS_Store

@@ -1,0 +1,4 @@
+# Зависимости Python-бэкенда
+# Установка:  pip3 install -r requirements.txt
+flask
+flask-cors
