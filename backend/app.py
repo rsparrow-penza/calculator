@@ -10,6 +10,7 @@
 # Сервер поднимется на http://localhost:5001
 # (порт 5001, а не 5000, потому что на macOS порт 5000 занят AirPlay Receiver)
 
+import os
 import sqlite3
 from datetime import datetime
 
@@ -19,7 +20,9 @@ from flask_cors import CORS  # разрешает запросы из React (д�
 app = Flask(__name__)
 CORS(app)
 
-DB_FILE = "calculator.db"
+# Путь к базе. В Docker мы пробрасываем переменную DATABASE_FILE, чтобы база
+# лежала в томе (/data), который переживает пересоздание контейнера.
+DB_FILE = os.environ.get("DATABASE_FILE", "calculator.db")
 
 
 # ---------------------------------------------------------------------------
